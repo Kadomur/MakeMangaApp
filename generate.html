@@ -635,12 +635,6 @@ function renderFinal(){
 
 function saveImage(){
 
-// ▼修正：選択中レイアウトだけチェック
-if(!selectedLayout || !selectedLayout.rows){
-  alert("③まで確定してください");
-  return;
-}
-
   const target = document.getElementById("final");
 
   html2canvas(target, {
@@ -711,12 +705,6 @@ function goHome(){location.href="home.html";}
 renderLayouts();
 
 function shareImage(){
-
-// ▼修正：選択中レイアウトだけチェック
-if(!selectedLayout || !selectedLayout.rows){
-  alert("③まで確定してください");
-  return;
-}
 
   const target = document.getElementById("final");
 
