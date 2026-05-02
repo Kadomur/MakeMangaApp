@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>① 構図管理 ver2</title>
+
+<style>
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:#f5f5f5;
+  font-size:17px;
+}
+
+#area{
+  padding:0 12px;
+}
+
+header{
+  background:#111;
+  color:#fff;
+  text-align:center;
+  padding:12px;
+  font-weight:600;
+  font-size:20px;
+  font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+}
+
+.container{
+  max-width:520px;
+  margin:0 auto;
+  padding:12px;
+}
+
+.btn-home{
+  background:#8e8e93;
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  padding:8px 12px;
+  font-size:14px;
+  margin-bottom:15px;
+  margin:10px 12px 15px; /* ▼修正：上にも余白追加 */
+}
+
+
+.btn-green,
+.btn-blue,
+.btn-red,
+.btn-orange,
+.btn-gray{
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  padding:8px 12px;
+  cursor:pointer;
+  font-weight:600;
+  font-size:14px;
+}
+
+.btn-green{ background:#4cd964; }
+.btn-blue{ background:#5ac8fa; }
+.btn-red{ background:#ff6b6b; }
+.btn-orange{ background:#ff9500; }
+.btn-gray{ background:#bcbcbd; }
+
+#deleteBtn.active{
+  background:#007aff;color:#fff;
+}
+
+input{
+  font-size:16px;
+  width:40%;
+}
+
+body{font-size:18px;padding:0px;}
+
+img{
+  width:45%;
+  margin:5px;
+  aspect-ratio:13/9;
+  object-fit:contain;
+  background:#ffffff;
+  display:inline-block;
+  border:1.5px solid #ccc;
+  border-radius:8px;
+}
+
+.card{
+  background:#fff;
+  border-radius:12px;
+  padding:12px;
+  margin:16px 12px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+}
+
+h3{
+  margin-top:0;
+}
+
+.selected{
+  opacity:0.5;
+  outline:3px solid red;
+  outline-offset:-3px;
+}
+</style>
+
+</head>
+<body>
+
+<header>構図管理</header>
+
+<button class="btn-home" onclick="goHome()">←ホーム</button>
+
+<div style="padding:0 12px;">
+  <button id="deleteBtn" class="btn-gray" onclick="toggleDeleteMode()">削除選択</button>
+  <button id="deleteExecBtn" class="btn-red" onclick="deleteSelected()" style="display:none;">削除実行</button>
+</div>
+
+<div class="card">
+  <h3>タグ未設定</h3>
+
+  <div class="row">
+    <div class="right">
+      <button class="btn-green" onclick="add()">画像追加</button>
+    </div>
+  </div>
+
+  <div id="unset"></div>
+</div>
+
+<div class="card">
+  <h3>設定済み</h3>
+  <div id="set"></div>
+
+  <input type="file" id="file" multiple accept="image/*" style="display:none">
+</div>
+
+<script>
+
+function load(){
+  return JSON.parse(localStorage.getItem("compositions")) || [];
+}
+
+function save(d){
+  localStorage.setItem("compositions", JSON.stringify(d));
+}
+
+// ▼変更：showAll分離
+let showAllSet=false;   // ▼追加
+let showAllUnset=false; // ▼追加
+
+let deleteMode = false;
+let selectedIds = [];
+
+function render(){
+  const data=load();
+  unset.innerHTML="";
+  set.innerHTML="";
+
+  const setData=data.filter(c=>c.role);
+  const unsetData=data.filter(c=>!c.role);
+
+  // ▼変更：個別制御
+  const displayUnset=showAllUnset ? unsetData : unsetData.slice(0,2); // ▼変更
+  const displaySet=showAllSet ? setData : setData.slice(0,4);         // ▼変更
+
+  // 未設定
+  displayUnset.forEach(c=>{
+    const img=document.createElement("img");
+    img.src=c.src;
+
+    img.onclick=()=>{
+
+  if(deleteMode){
+    if(selectedIds.includes(c.id)){
+      selectedIds = selectedIds.filter(id => id !== c.id);
+      img.classList.remove("selected");
+    }else{
+      selectedIds.push(c.id);
+      img.classList.add("selected");
+    }
+    return;
+  }
+
+    if(c.role){
+      showPreview(c);
+    }else{
+      localStorage.setItem("targetComposition",c.id);
+      location.href="tag.html";
+    }
+  };
+
+    unset.appendChild(img);
+  });
+
+  // ▼未設定閉じる
+  if(showAllUnset){
+    const closeBtn=document.createElement("button");
+    closeBtn.textContent="一覧を閉じる";
+    closeBtn.className="btn-gray";
+    closeBtn.style.display="block";
+    closeBtn.style.margin="10px auto";
+
+    closeBtn.onclick=()=>{
+      showAllUnset=false;
+      render();
+      window.scrollTo({ top: 0 });
+    };
+
+    unset.appendChild(closeBtn);
+  }
+
+  // 設定済み
+  displaySet.forEach(c=>{
+    const img=document.createElement("img");
+    img.src=c.src;
+
+img.onclick=()=>{
+
+      if(deleteMode){
+        if(selectedIds.includes(c.id)){
+          selectedIds = selectedIds.filter(id => id !== c.id);
+          img.classList.remove("selected");
+        }else{
+          selectedIds.push(c.id);
+          img.classList.add("selected");
+        }
+        return;
+      }
+
+      showPreview(c);
+    };
+
+    set.appendChild(img);
+  });
+
+  // ▼設定済み閉じる
+  if(showAllSet){
+    const closeBtn=document.createElement("button");
+    closeBtn.textContent="一覧を閉じる";
+    closeBtn.className="btn-gray";
+    closeBtn.style.display="block";
+    closeBtn.style.margin="10px auto";
+
+    closeBtn.onclick=()=>{
+      showAllSet=false;
+      render();
+      window.scrollTo({ top: 0 });
+    };
+
+    set.appendChild(closeBtn);
+  }
+
+  const right=document.querySelector(".right");
+
+  const oldBtn = right.querySelector(".btn-blue");
+  if(oldBtn) oldBtn.remove();
+
+  // ▼未設定ボタン（rightに配置）
+  if(!showAllUnset && unsetData.length>2){
+    const btn=document.createElement("button");
+    btn.textContent="すべて表示";
+    btn.className="btn-blue";
+
+    btn.onclick=()=>{
+      showAllUnset=true;
+      render();
+    };
+
+    const right=document.querySelector(".right"); // ▼変更
+    right.style.display="flex";
+    right.style.justifyContent="space-between";
+    right.style.alignItems="center";
+
+    const oldBtn = right.querySelector(".btn-blue");
+    if(oldBtn) oldBtn.remove();
+        
+    right.appendChild(btn);                      // ▼変更
+  }
+
+  // ▼設定済みボタン（setに配置）
+  if(setData.length>4){
+
+    const btn=document.createElement("button");
+    btn.textContent="すべて表示";
+    btn.className="btn-blue";
+
+    btn.onclick=()=>{
+      showAllSet=true;
+      render();
+    };
+
+    if(showAllSet){
+      btn.style.visibility = "hidden";
+    }
+
+    const wrap=document.createElement("div");
+    wrap.style.textAlign="right"; // ▼変更
+
+    if(showAllSet){
+      wrap.style.visibility="hidden"; // ←追加（消さずに見えなくする）
+    }
+      
+    wrap.appendChild(btn);
+    set.insertBefore(wrap, set.firstChild); // ▼変更
+  }
+}
+
+async function compress(file){
+  return new Promise(res=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const c=document.createElement("canvas");
+        const max=300;
+        let w=img.width,h=img.height;
+
+        if(w>h){h*=max/w;w=max;}
+        else{w*=max/h;h=max;}
+
+        c.width=w;c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        res(c.toDataURL("image/jpeg",0.6));
+      };
+      img.src=e.target.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+file.onchange=async e=>{
+  const files=[...e.target.files];
+  if(files.length===0)return;
+
+  let data=load();
+
+  for(const f of files){
+    const base64=await compress(f);
+
+    data.push({
+      id:Date.now()+Math.random(),
+      src:base64,
+      tags:[],
+      role:null
+    });
+  }
+
+  save(data);
+  render();
+};
+
+function add(){file.click();}
+function goHome(){location.href="home.html";}
+
+render();
+
+function showPreview(c){
+  const overlay=document.createElement("div");
+
+  overlay.style.position="fixed";
+  overlay.style.top="0";
+  overlay.style.left="0";
+  overlay.style.width="100%";
+  overlay.style.height="100%";
+  overlay.style.background="rgba(0,0,0,0.7)";
+  overlay.style.display="flex";
+  overlay.style.flexDirection="column";
+  overlay.style.alignItems="center";
+  overlay.style.justifyContent="center";
+  overlay.style.zIndex="9999";
+
+  const img=document.createElement("img");
+  img.src=c.src;
+  img.style.width="80%";
+  img.style.marginBottom="20px";
+
+  const closeBtn=document.createElement("button");
+  closeBtn.textContent="閉じる";
+  closeBtn.className="btn-gray";
+
+  closeBtn.onclick=()=>{
+    overlay.remove();
+  };
+
+  const editBtn=document.createElement("button");
+  editBtn.textContent="再タグ付け";
+  editBtn.className="btn-orange";
+
+  editBtn.onclick=()=>{
+    localStorage.setItem("targetComposition",c.id);
+    localStorage.setItem("fromPreview","1"); // ←追加
+    location.href="tag.html";
+  };
+
+  overlay.appendChild(img);
+
+  // ▼まとめ表示
+const tagBox=document.createElement("div");
+
+tagBox.style.background="#fff";
+tagBox.style.color="#000";
+tagBox.style.padding="10px";
+tagBox.style.borderRadius="10px";
+tagBox.style.fontSize="14px";
+tagBox.style.marginBottom="15px";
+
+const roleMap = {
+  emotion: "感情",
+  relationship: "関係",
+  situation: "状況"
+};
+
+// 表示テキスト生成
+let text="";
+
+if(c.tags && c.tags.length > 0){
+  text += c.tags.join(" / ");
+}
+
+if(c.role){
+  text += "  [" + (roleMap[c.role] || c.role) + "]";
+}
+
+tagBox.textContent = text;
+
+overlay.appendChild(tagBox);
+
+  const btnWrap=document.createElement("div");
+  btnWrap.style.display="flex";
+  btnWrap.style.gap="10px";
+
+  btnWrap.appendChild(closeBtn);
+  btnWrap.appendChild(editBtn);
+
+  overlay.appendChild(btnWrap);
+
+  document.body.appendChild(overlay);
+}
+
+function toggleDeleteMode(){
+  deleteMode = !deleteMode;
+  selectedIds = [];
+
+  const btn = document.getElementById("deleteBtn");
+  const execBtn = document.getElementById("deleteExecBtn");
+
+  if(deleteMode){
+    btn.classList.add("active");
+    execBtn.style.display = "inline-block";
+  }else{
+    btn.classList.remove("active");
+    execBtn.style.display = "none";
+  }
+
+  render();
+
+}
+function deleteSelected(){
+
+  if(selectedIds.length === 0){
+    alert("削除する画像を選択してください");
+    return;
+  }
+
+  if(!confirm("選択した画像を削除しますか？")) return;
+
+  let data = load();
+
+  data = data.filter(c => !selectedIds.includes(c.id));
+
+  save(data);
+
+  selectedIds = [];
+  deleteMode = false;
+
+  render();
+}
+
+</script>
+
+</body>
+</html>

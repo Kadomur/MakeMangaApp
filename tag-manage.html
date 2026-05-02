@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="manifest" href="manifest.json">
+
+<title>タグ管理 ver16</title>
+
+<style>
+body{margin:0;font-family:sans-serif;background:#f5f5f5;}
+header{
+  background:#111;
+  color:#fff;
+  text-align:center;
+  padding:12px;
+  font-weight:600;
+  font-size:20px;
+  font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+}
+.container{max-width:520px;margin:0 auto;padding:10px;}
+
+button{
+  padding:6px 10px;
+  border:none;
+  border-radius:8px;
+  color:#fff;
+  font-size:13px;
+}
+
+.btn-home{
+  background:#8e8e93;
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  padding:8px 12px;
+  font-size:14px;
+  margin-bottom:5px;
+}
+
+.btn-add{background:#34c759;}
+.btn-del{background:#ff3b30;}
+
+.btn-single{background:#007aff;color:#fff;}
+.btn-multi{background:#5ac8fa;color:#333;}
+
+.btn-required{background:#ff9500;color:#fff;}
+.btn-optional{background:#ffd60a;color:#333;}
+
+.inputArea{display:flex;gap:5px;margin-bottom:10px;}
+input,select{
+  flex:1;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:16px;
+}
+
+.groupBox{
+  background:#fff;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:10px;
+}
+
+.groupTitle{
+  font-weight:bold;
+  margin-bottom:6px;
+}
+
+.tagItem{
+  display:flex;
+  justify-content:space-between;
+  margin:4px 0;
+}
+
+.controlRow{
+  margin-bottom:8px;
+  display:flex;
+  gap:6px;
+}
+</style>
+</head>
+
+<body>
+
+<header>タグ管理</header>
+
+<div class="container">
+
+<button class="btn-home" onclick="goHome()">←ホーム</button>
+
+<h3>グループ管理</h3>
+
+<!-- 追加 -->
+<div class="inputArea">
+  <input id="groupInput" placeholder="グループ名">
+  <button class="btn-add" onclick="addGroup()">追加</button>
+</div>
+
+<!-- 削除 -->
+<div class="inputArea">
+  <select id="groupSelect"></select>
+  <button class="btn-del" onclick="deleteGroup()">削除</button>
+</div>
+
+<div id="list"></div>
+
+</div>
+
+<script>
+
+const defaultData = [
+  {name:"構図",single:true,required:true,list:["対峙","正面","斜め","俯瞰","あおり","主観"]},
+  {name:"距離",single:true,required:true,list:["アップ","寄り","中距離","引き","遠景"]},
+  {name:"人数",single:true,required:true,list:["人なし","1人","2人","3人","4人以上"]},
+  {name:"動作",single:false,required:false,list:["歩く","走る","止まる","座る","立つ","振り向く"]},
+  {name:"感情",single:false,required:false,list:["喜び","怒り","悲しみ","驚き","無表情","不安"]},
+  {name:"演出",single:false,required:false,list:["攻撃","対立","視線","沈黙","誇張","リアクション","デフォルメ","ぼかし"]},
+  {name:"環境",single:false,required:false,list:["屋内","屋外","風景","群衆","背景なし"]},
+  {name:"特殊コマ",single:true,required:false,list:["横2","縦2","見開き"]},
+  {name:"GB機能",single:true,required:false,list:["分岐","クイズ","アイテム","END"]}
+];
+
+function load(){
+  return JSON.parse(localStorage.getItem("tags")) || [];
+}
+function save(d){
+  localStorage.setItem("tags", JSON.stringify(d));
+}
+
+function init(){
+  let data = load();
+  if(data.length===0){
+    save(defaultData);
+  }
+}
+
+// ----------------
+function render(){
+
+  const data = load();
+  list.innerHTML="";
+  groupSelect.innerHTML="";
+
+  data.forEach((g,gi)=>{
+
+    // ★セレクト更新
+    const opt=document.createElement("option");
+    opt.value=gi;
+    opt.textContent=g.name;
+    groupSelect.appendChild(opt);
+
+    const box=document.createElement("div");
+    box.className="groupBox";
+
+    const title=document.createElement("div");
+    title.className="groupTitle";
+    title.textContent=g.name;
+    box.appendChild(title);
+
+    // 設定
+    const control=document.createElement("div");
+    control.className="controlRow";
+
+    const singleBtn=document.createElement("button");
+    singleBtn.textContent = g.single ? "単一" : "複数";
+    singleBtn.className = g.single ? "btn-single" : "btn-multi";
+    singleBtn.onclick=()=>toggleSingle(gi);
+
+    const reqBtn=document.createElement("button");
+    reqBtn.textContent = g.required ? "必須" : "任意";
+    reqBtn.className = g.required ? "btn-required" : "btn-optional";
+    reqBtn.onclick=()=>toggleRequired(gi);
+
+    control.appendChild(singleBtn);
+    control.appendChild(reqBtn);
+    box.appendChild(control);
+
+    // タグ一覧
+    g.list.forEach((tag,ti)=>{
+
+      const row=document.createElement("div");
+      row.className="tagItem";
+
+      const span=document.createElement("span");
+      span.textContent=tag;
+
+      const del=document.createElement("button");
+      del.className="btn-del";
+      del.textContent="削除";
+
+      del.onclick=()=>{
+        if(!confirm("削除しますか？")) return;
+        g.list.splice(ti,1);
+        save(data);
+        render();
+      };
+
+      row.appendChild(span);
+      row.appendChild(del);
+      box.appendChild(row);
+    });
+
+    // タグ追加
+    const inputRow=document.createElement("div");
+    inputRow.className="inputArea";
+
+    const input=document.createElement("input");
+
+    const btn=document.createElement("button");
+    btn.textContent="タグ追加";
+    btn.className="btn-add";
+
+    btn.onclick=()=>{
+      const val=input.value.trim();
+      if(!val)return;
+
+      if(g.list.includes(val)){
+        alert("タグが重複しています");
+        input.value="";
+        input.focus();
+        return;
+      }
+
+      g.list.push(val);
+      input.value="";
+      input.focus();
+      save(data);
+      render();
+    };
+
+    inputRow.appendChild(input);
+    inputRow.appendChild(btn);
+    box.appendChild(inputRow);
+
+    list.appendChild(box);
+  });
+}
+
+// ----------------
+function addGroup(){
+  const val=groupInput.value.trim();
+  if(!val)return;
+
+  const data=load();
+
+  if(data.some(g=>g.name===val)){
+    alert("グループ名が重複しています");
+    groupInput.value="";
+    groupInput.focus();
+    return;
+  }
+
+  data.push({
+    name:val,
+    single:true,
+    required:false,
+    list:[]
+  });
+
+  save(data);
+  groupInput.value="";
+  groupInput.focus();
+  render();
+}
+
+function deleteGroup(){
+  const index = groupSelect.value;
+  const data = load();
+
+  if(!confirm("このグループを削除しますか？")) return;
+
+  data.splice(index,1);
+  save(data);
+  render();
+}
+
+function toggleSingle(i){
+  const data=load();
+  data[i].single=!data[i].single;
+  save(data);
+  render();
+}
+
+function toggleRequired(i){
+  const data=load();
+  data[i].required=!data[i].required;
+  save(data);
+  render();
+}
+
+function goHome(){
+  location.href="home.html";
+}
+
+init();
+render();
+
+</script>
+
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+</body>
+</html>

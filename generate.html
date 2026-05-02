@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="manifest" href="manifest.json">
+
+<title>⑤ 構図生成</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:#f5f5f5;
+  font-size:17px;
+}
+
+header{
+  background:#111;
+  color:#fff;
+  text-align:center;
+  padding:12px;
+  font-weight:600;
+  font-size:20px;
+  font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+}
+
+.container{
+  max-width:520px;
+  margin:0 auto;
+  padding:12px;
+}
+
+.btn-home{
+  background:#8e8e93;
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  padding:8px 12px;
+  font-size:14px;
+  margin-bottom:15px;
+}
+
+
+input{
+  font-size:16px;
+  width:40%;
+}
+
+.page-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:12px; 
+}
+
+.side-wrap{display:flex;gap:10px;}
+
+.side-option{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  cursor:pointer;
+}
+.side-circle{
+  width:14px;height:14px;
+  border:2px solid #333;border-radius:50%;
+}
+.side-option.active .side-circle{background:#ff9500;}
+
+img{display:block;}
+
+#layoutArea{
+  margin-top:12px;
+  display:flex;
+  flex-wrap:nowrap;
+}
+
+#layoutArea img{
+  width:calc((100% - 30px) / 3);
+  margin:5px;
+  border:2px solid #ccc;
+  box-sizing:border-box;
+}
+
+#candidates{
+  display:flex;
+  flex-wrap:wrap;
+}
+
+#candidates img{
+  width:43%;
+  margin:3px;
+  border:2px solid #ccc;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  background:#eee;
+}
+
+.no-result{
+  color:#888;
+  padding:10px;
+}
+
+.layout-selected{border:4px solid #007aff !important;}
+.selected{border:4px solid #ff3b30 !important;}
+
+.scene-btn{
+  display:inline-block;
+  border:1px solid #ccc;
+  padding:6px 10px;
+  margin:4px;
+  border-radius:8px;
+  background:#fff;
+}
+.scene-btn.active{
+  background:#007aff;color:#fff;
+}
+
+.scene-space{margin-bottom:10px;}
+
+.acc-header{
+  font-size:14px;
+  margin-top:8px;
+  cursor:pointer;
+}
+.acc-body{display:none;}
+
+.row{display:flex;justify-content:space-between;margin-top:10px;}
+.left{display:flex;gap:10px;}
+.right{margin-left:auto;}
+
+#final{
+  margin-top:20px;
+  position:relative;
+  aspect-ratio: 9 / 13;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  gap:16px; /* ←追加（段の間の余白） */
+}
+
+.panel-row{
+  display:flex;
+  gap:6px;
+  flex:1;
+  overflow:hidden;
+}
+
+.panel{
+  flex:1;
+  border:3px solid #000;
+  display:flex;
+  overflow:hidden;
+}
+
+.panel img{
+  width:100%;
+  object-fit:contain;
+  background:#fff;
+}
+
+.panel{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* 追加 */
+.page-title{
+  position:absolute;
+  top:8px;
+  right:8px;
+  background:#fff;
+  padding:4px 8px;
+  font-size:14px;
+  z-index:10;
+  border:2px solid #000;
+}
+
+.page-number{
+  position:absolute;
+  bottom:8px;
+  width:35px;
+  height:35px;
+  border:2px solid #000;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:10;
+}
+
+.page-number.left{
+  left:8px;
+}
+
+.page-number.right{
+  right:8px;
+}
+
+.card{
+  background:#fff;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:16px;
+}
+
+h3{
+  margin-top:0;
+}
+
+.step{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  background:#333;
+  color:#fff;
+  font-size:14px;
+  margin-right:8px;
+}
+
+/* ===== 追加：ボタンデザイン（個別クラス指定） ===== */
+
+/* 共通スタイル（※buttonには直接当てない） */
+.btn-green,
+.btn-blue,
+.btn-red,
+.btn-rightblue,
+.btn-gray{
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  padding:8px 12px;
+  cursor:pointer;
+  font-weight:600;
+  font-size:14px;
+}
+
+/* 色 */
+.btn-green{
+  background:#4cd964; /* 黄緑 */
+}
+
+.btn-blue{
+  background:#007aff; /* 青 */
+}
+
+.btn-red{
+  background:#ff6b6b; /* 薄赤 */
+}
+
+.btn-gray{
+  background:#bcbcbd; /* 明るいグレー */
+}
+
+.btn-rightblue
+{
+  background:#8800ff;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>構図生成</header>
+
+<div class="container">
+
+<button class="btn-home" onclick="goHome()">←ホーム</button>
+
+<div class="card">
+<h3><span class="step">1</span>レイアウト選択</h3>
+
+<div class="row">
+  <div class="left">
+    <button class="btn-red" onclick="resetAll()">最初からやり直す</button>
+  </div>
+  <div class="right">
+    <button class="btn-green" onclick="renderLayouts()">再抽選</button>
+  </div>
+</div>
+
+<div id="layoutArea"></div>
+
+<div class="page-row">
+  <span>ページ名：</span>
+  <input id="pageName" list="history">
+
+  <div class="side-wrap">
+    <span class="side-option" data-side="左">
+      <span class="side-circle"></span>左
+    </span>
+    <span class="side-option active" data-side="右">
+      <span class="side-circle"></span>右
+    </span>
+  </div>
+</div>
+
+<datalist id="history"></datalist>
+</div>
+
+<div class="card">
+<h3><span class="step">2</span>シーン設定</h3>
+<div id="sceneInfo"></div>
+
+<div class="scene-space"></div>
+
+<div id="sceneArea"></div>
+
+<div class="row">
+  <div class="left">
+    <button class="btn-red" onclick="resetScenes()">リセット</button>
+    <button class="btn-blue" onclick="setScene()">確定→</button>
+  </div>
+</div>
+</div>
+
+<div class="card">
+<h3><span class="step">3</span>構図決定</h3>
+<div id="info"></div>
+<div id="candidates"></div>
+
+<div class="row">
+  <div class="left">
+    <button class="btn-gray" onclick="prev()"> ←戻る </button>
+    <button class="btn-blue" id="nextBtn" onclick="next()">確定→</button>
+  </div>
+  <div class="right">
+    <button class="btn-green" onclick="reroll()">再抽選</button>
+  </div>
+</div>
+</div>
+
+<div class="card">
+<h3>最終結果</h3>
+<div id="final"></div>
+<div style="height:20px;"></div>
+<button class="btn-blue" onclick="saveImage()">保存</button>
+<button class="btn-rightblue" onclick="shareImage()">共有</button>
+
+</div>
+
+</div>
+
+<script>
+
+const normalScenes=[
+ "導入","説明","会話","回想","移動","日常",
+ "ギャグ","発見","緊張","驚き","喜び","悲しみ"
+];
+
+const specialScenes=["横2","縦2","見開き"];
+const functionScenes=["分岐","クイズ","アイテム","END"];
+const SPECIAL_TAGS=[...specialScenes,...functionScenes];
+
+function load(k){return JSON.parse(localStorage.getItem(k))||[];}
+
+let selectedLayout=null,totalPanels=0,currentIndex=0;
+let results=[],panelScenes=[],selectedScene=null;
+let selectedSide="右";
+
+document.addEventListener("click",e=>{
+  const option=e.target.closest(".side-option");
+  if(option){
+    document.querySelectorAll(".side-option")
+      .forEach(o=>o.classList.remove("active"));
+    option.classList.add("active");
+    selectedSide=option.dataset.side;
+  }
+});
+
+function renderLayouts(){
+  const area=document.getElementById("layoutArea");
+  area.innerHTML="";
+  let list=load("layouts").filter(l=>l.rows && l.src);
+
+  list.sort(()=>Math.random()-0.5).slice(0,3).forEach(l=>{
+    const img=document.createElement("img");
+    img.src=l.src;
+
+    img.onclick=()=>{
+      area.innerHTML="";
+      img.classList.add("layout-selected");
+      area.appendChild(img);
+
+      selectedLayout=l;
+      totalPanels=l.rows.flat().length;
+
+      renderSceneUI();
+    };
+
+    area.appendChild(img);
+  });
+}
+
+function renderSceneUI(){
+  const a=document.getElementById("sceneArea");
+  a.innerHTML="";
+  updateSceneInfo();
+
+  normalScenes.forEach(s=>a.appendChild(createBtn(s)));
+
+  const spH=document.createElement("div");
+  spH.className="acc-header";
+  spH.textContent="▶ 特殊コマ";
+  spH.onclick=()=>toggle(spH);
+  a.appendChild(spH);
+
+  const spB=document.createElement("div");
+  spB.className="acc-body";
+  specialScenes.forEach(s=>spB.appendChild(createBtn(s)));
+  a.appendChild(spB);
+
+  const fnH=document.createElement("div");
+  fnH.className="acc-header";
+  fnH.textContent="▶ 機能コマ";
+  fnH.onclick=()=>toggle(fnH);
+  a.appendChild(fnH);
+
+  const fnB=document.createElement("div");
+  fnB.className="acc-body";
+  functionScenes.forEach(s=>fnB.appendChild(createBtn(s)));
+  a.appendChild(fnB);
+}
+
+function toggle(h){
+  const body=h.nextElementSibling;
+  body.style.display=body.style.display==="block"?"none":"block";
+}
+
+function createBtn(text){
+  const b=document.createElement("div");
+  b.className="scene-btn";
+  b.textContent=text;
+
+  b.onclick=()=>{
+    document.querySelectorAll(".scene-btn")
+      .forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    selectedScene=text;
+  };
+
+  return b;
+}
+
+function updateSceneInfo(){
+  document.getElementById("sceneInfo").innerText=
+   `コマ ${panelScenes.length+1}/${totalPanels}`;
+}
+
+function setScene(){
+
+  if(!selectedLayout){
+    alert("レイアウトを選択してください");
+    return;
+  }
+
+  if(!selectedScene){
+    alert("シーンを選択してください");
+    return;
+  }
+
+  panelScenes.push(selectedScene);
+
+  selectedScene=null;
+  document.querySelectorAll(".scene-btn")
+    .forEach(b=>b.classList.remove("active"));
+
+  if(panelScenes.length===totalPanels){
+    alert("シーンを全て確定しました");
+    startComposition();
+  }else{
+    updateSceneInfo();
+  }
+}
+
+function resetScenes(){
+  panelScenes = [];
+  selectedScene = null;
+  currentIndex = 0;
+  results = [];
+
+  document.querySelectorAll(".scene-btn")
+    .forEach(b=>b.classList.remove("active"));
+
+  document.getElementById("candidates").innerHTML = "";
+  document.getElementById("info").innerText = "";
+
+  updateSceneInfo();
+}
+
+function startComposition(){
+  currentIndex=0;
+  results=[];
+  nextStep();
+}
+
+function getCandidates(){
+
+  const data=load("compositions");
+  const scene=panelScenes[currentIndex];
+
+  let f=[];
+
+  if(SPECIAL_TAGS.includes(scene)){
+    f=data.filter(d=>Array.isArray(d.tags) && d.tags.includes(scene));
+    if(f.length===0){
+      return [];
+    }
+  }else{
+    f=data.filter(d=>{
+      if(!Array.isArray(d.tags) || d.tags.length===0) return false;
+      return !SPECIAL_TAGS.some(t=>d.tags.includes(t))
+        && d.tags.includes(scene);
+    });
+    if(f.length===0){
+     f = data.filter(d =>
+      Array.isArray(d.tags) &&
+      d.tags.length > 0 &&
+      !SPECIAL_TAGS.some(t => d.tags.includes(t))
+  );
+}
+  }
+
+  return f.sort(()=>Math.random()-0.5).slice(0,4);
+}
+
+function renderCandidates(){
+  const area=document.getElementById("candidates");
+  area.innerHTML="";
+  const list=getCandidates();
+
+  if(list.length===0){
+    const div=document.createElement("div");
+    div.className="no-result";
+    div.textContent="該当する画像はありません";
+    area.appendChild(div);
+    return;
+  }
+
+  list.forEach(c=>{
+    const img=document.createElement("img");
+    img.src=c.src;
+    img.onclick=()=>{
+      document.querySelectorAll("#candidates img")
+        .forEach(i=>i.classList.remove("selected"));
+      img.classList.add("selected");
+    };
+    area.appendChild(img);
+  });
+}
+
+function next(){
+  const s=document.querySelector("#candidates .selected");
+  if(!s){alert("構図を選択してください");return;}
+  results.push(s.src);
+  currentIndex++;
+  nextStep();
+}
+
+function prev(){
+  if(currentIndex===0)return;
+  currentIndex--;
+  results.pop();
+  nextStep();
+}
+
+function nextStep(){
+
+  if(currentIndex>=totalPanels){
+    alert("構図を全て確定しました");
+    renderFinal();
+    return;
+  }
+
+  document.getElementById("info").innerText=
+   `コマ${currentIndex+1}/${totalPanels}（${panelScenes[currentIndex]}）`;
+
+  renderCandidates();
+}
+
+function reroll(){renderCandidates();}
+
+function renderFinal(){
+  const area=document.getElementById("final");
+  area.innerHTML="";
+  let index=0;
+
+  selectedLayout.rows.forEach(row=>{
+    const rowDiv=document.createElement("div");
+    rowDiv.className="panel-row";
+
+    row.forEach(()=>{
+      const panel=document.createElement("div");
+      panel.className="panel";
+
+      const img=document.createElement("img");
+      img.src=results[index];
+
+      panel.appendChild(img);
+      rowDiv.appendChild(panel);
+      index++;
+    });
+
+    area.appendChild(rowDiv);
+  });
+
+  const title=document.createElement("div");
+  title.className="page-title";
+  const name=document.getElementById("pageName").value || "";
+  title.textContent = `${name}（${selectedSide}）`;
+  area.appendChild(title);
+
+  const num=document.createElement("div");
+  num.className="page-number";
+  num.textContent="1";
+
+  if(selectedSide==="左"){
+    num.classList.add("left");
+  }else{
+    num.classList.add("right");
+  }
+
+  area.appendChild(num);
+}
+
+function saveImage(){
+
+  // ▼追加：未確定チェック
+  const layouts = JSON.parse(localStorage.getItem("layouts")) || [];
+
+  const incomplete = layouts.find(l => !l.compositions || l.compositions.length === 0);
+
+  if(incomplete){
+    alert("③まですべて確定してください");
+    return;
+  }
+
+  const target = document.getElementById("final");
+
+  html2canvas(target, {
+    backgroundColor: "#ffffff",
+    scale: 2
+  }).then(canvas => {
+
+    const margin = 40;
+
+    const newCanvas = document.createElement("canvas");
+    newCanvas.width = canvas.width + margin * 2;
+    newCanvas.height = canvas.height + margin * 2;
+
+    const ctx = newCanvas.getContext("2d");
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, newCanvas.width, newCanvas.height);
+
+    ctx.drawImage(canvas, margin, margin);
+
+    // ▼ここだけ残す（シンプル版）
+    newCanvas.toBlob((blob) => {
+
+      const link = document.createElement("a");
+      link.download = "manga-page.png";
+      link.href = URL.createObjectURL(blob);
+      link.click();
+
+    });
+
+  });
+}
+
+function previewImage(){
+
+  const target = document.getElementById("final");
+
+  html2canvas(target, {
+    backgroundColor: "#ffffff",
+    scale: 2
+  }).then(canvas => {
+
+    const margin = 40;
+
+    const newCanvas = document.createElement("canvas");
+    newCanvas.width = canvas.width + margin * 2;
+    newCanvas.height = canvas.height + margin * 2;
+
+    const ctx = newCanvas.getContext("2d");
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, newCanvas.width, newCanvas.height);
+
+    ctx.drawImage(canvas, margin, margin);
+
+    // ▼保存
+    const link = document.createElement("a");
+    link.download = "manga-page.png";
+    link.href = newCanvas.toDataURL("image/png");
+    link.click();
+
+  });
+}
+
+function resetAll(){location.reload();}
+function goHome(){location.href="home.html";}
+
+renderLayouts();
+
+function shareImage(){
+
+  // ▼追加：未確定チェック
+  const layouts = JSON.parse(localStorage.getItem("layouts")) || [];
+
+  const incomplete = layouts.find(l => !l.compositions || l.compositions.length === 0);
+
+  if(incomplete){
+    alert("③まですべて確定してください");
+    return;
+  }
+
+  const target = document.getElementById("final");
+
+  html2canvas(target, {
+    backgroundColor: "#ffffff",
+    scale: 2
+  }).then(canvas => {
+
+    const margin = 40;
+
+    const newCanvas = document.createElement("canvas");
+    newCanvas.width = canvas.width + margin * 2;
+    newCanvas.height = canvas.height + margin * 2;
+
+    const ctx = newCanvas.getContext("2d");
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, newCanvas.width, newCanvas.height);
+
+    ctx.drawImage(canvas, margin, margin);
+
+    newCanvas.toBlob(async (blob) => {
+
+      const file = new File([blob], "manga-page.png", { type: "image/png" });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try{
+          await navigator.share({
+            files: [file],
+            title: "漫画ページ",
+            text: "作成した構図"
+          });
+        }catch(e){
+          console.log("共有キャンセル");
+        }
+      } else {
+        alert("この端末では共有できません");
+      }
+
+    });
+
+  });
+}
+
+</script>
+
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+</body>
+</html>

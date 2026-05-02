@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="manifest" href="manifest.json">
+
+<title>レイアウト管理 ver1</title>
+<style>
+body{font-size:18px;padding:0px;}
+img{width:30%;margin:5px;}
+
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:#f5f5f5;
+  font-size:17px;
+}
+
+header{
+  background:#111;
+  color:#fff;
+  text-align:center;
+  padding:12px;
+  font-weight:600;
+  font-size:20px;
+  font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+}
+
+.btn-home{
+  background:#8e8e93;
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  padding:8px 12px;
+  font-size:14px;
+  margin-bottom:15px;
+  margin:3px 3px 15px; /* ▼修正：上にも余白追加 */
+}
+
+.container{
+  max-width:520px;
+  margin:0 auto;
+  padding:12px;
+}
+
+input{
+  font-size:16px;
+  width:40%;
+}
+
+.card{
+  background:#fff;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:16px;
+}
+
+.scene-btn{
+  display:inline-block;
+  border:1px solid #ccc;
+  padding:6px 10px;
+  margin:4px;
+  border-radius:8px;
+  background:#fff;
+}
+
+.selected{
+  opacity:0.5;
+  outline:3px solid red;
+  outline-offset:-3px;
+}
+
+#deleteBtn.active{
+  background:#007aff;color:#fff;
+}
+
+/* ▼追加：削除実行ボタン初期非表示 */
+#deleteExecBtn{
+  display:none;
+}
+
+h3{
+  margin-top:0;
+}
+
+.btn-green,
+.btn-blue,
+.btn-red,
+.btn-gray{
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  padding:8px 12px;
+  cursor:pointer;
+  font-weight:600;
+  font-size:14px;
+}
+
+.btn-green{ background:#4cd964; }
+.btn-blue{ background:#007aff; }
+.btn-red{ background:#ff6b6b; }
+.btn-gray{ background:#bcbcbd; }
+
+</style>
+</head>
+<body>
+
+<header>レイアウト管理</header>
+
+<div class="container">
+
+<button class="btn-home" onclick="goHome()">←ホーム</button>
+
+<div class="card">
+  <h3>段/コマ数 未設定</h3>
+
+  <div class="row">
+    <div class="right">
+      <button class="btn-green" onclick="add()">画像追加</button>
+    </div>
+  </div>
+
+  <div id="unset"></div>
+</div>
+
+<div class="card">
+  <h3>設定済み</h3>
+
+  <button id="deleteBtn" class="btn-gray" onclick="toggleDeleteMode()">削除選択</button>
+  <!-- ▼修正①：id追加 -->
+  <button id="deleteExecBtn" class="btn-red" onclick="deleteSelected()">削除実行</button>
+
+  <div id="set"></div>
+
+  <input type="file" id="file" multiple accept="image/*" style="display:none">
+</div>
+
+<script>
+
+let deleteMode = false;
+let selectedIds = [];
+
+function load(){return JSON.parse(localStorage.getItem("layouts"))||[];}
+function save(d){localStorage.setItem("layouts",JSON.stringify(d));}
+
+function render(){
+  const data=load();
+  unset.innerHTML="";
+  set.innerHTML="";
+
+  data.forEach(l=>{
+    const img=document.createElement("img");
+    img.src=l.src;
+
+    img.onclick=()=>{
+
+      if(l.rows){
+
+        if(deleteMode){
+
+          if(selectedIds.includes(l.id)){
+            selectedIds = selectedIds.filter(id => id !== l.id);
+            img.classList.remove("selected");
+          }else{
+            selectedIds.push(l.id);
+            img.classList.add("selected");
+          }
+
+          return;
+        }
+
+        showDetail(l);
+        return;
+      }
+
+      localStorage.setItem("targetLayout",l.id);
+      location.href="layout-setting.html";
+    };
+
+    if(l.rows) set.appendChild(img);
+    else unset.appendChild(img);
+  });
+}
+
+/* ★複数対応 */
+async function compress(file){
+  return new Promise(res=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const c=document.createElement("canvas");
+        const max=300;
+        let w=img.width,h=img.height;
+
+        if(w>h){h*=max/w;w=max;}
+        else{w*=max/h;h=max;}
+
+        c.width=w;c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        res(c.toDataURL("image/jpeg",0.6));
+      };
+      img.src=e.target.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+file.onchange=async e=>{
+  const files=[...e.target.files];
+  if(files.length===0)return;
+
+  let data=load();
+
+  for(const f of files){
+    const base64=await compress(f);
+
+    data.push({
+      id:Date.now()+Math.random(),
+      src:base64
+    });
+  }
+
+  save(data);
+  render();
+};
+
+function add(){file.click();}
+function goHome(){location.href="home.html";}
+
+/* ▼修正③：表示制御追加 */
+function toggleDeleteMode(){
+  deleteMode = !deleteMode;
+  selectedIds = [];
+
+  const btn = document.getElementById("deleteBtn");
+  const execBtn = document.getElementById("deleteExecBtn"); // ←追加
+
+  if(deleteMode){
+    btn.classList.add("active");
+    execBtn.style.display = "inline-block"; // ←追加
+  }else{
+    btn.classList.remove("active");
+    execBtn.style.display = "none"; // ←追加
+  }
+
+  render();
+}
+
+function deleteSelected(){
+
+  if(selectedIds.length === 0){
+    alert("削除する画像を選択してください");
+    return;
+  }
+
+  if(!confirm("選択したレイアウトを削除しますか？")) return;
+
+  let data = load();
+
+  data = data.filter(l => !selectedIds.includes(l.id));
+
+  save(data);
+
+  selectedIds = [];
+  deleteMode = false;
+
+  render();
+}
+
+function showDetail(l){
+
+  const detailText = document.getElementById("detailText");
+  const detailBox = document.getElementById("detailBox");
+
+  let text = `段数【${l.rows.length}段】\n\n`;
+
+  l.rows.forEach((row, i)=>{
+    text += `${i+1}段目：${row.length}コマ\n`;
+  });
+
+  detailText.innerText = text;
+  detailBox.style.display = "block";
+}
+
+function closeDetail(){
+  detailBox.style.display = "none";
+}
+
+render();
+
+</script>
+
+<div id="detailBox" style="
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:250px;
+  height:180px;
+  background:#fff;
+  border:2px solid #333;
+  border-radius:10px;
+  padding:10px;
+  display:none;
+  z-index:1000;
+">
+  <div id="detailText"></div>
+  <button onclick="closeDetail()">閉じる</button>
+</div>
+
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+</body>
+</html>
