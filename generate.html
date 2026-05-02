@@ -635,10 +635,10 @@ function renderFinal(){
 
 function saveImage(){
 
-  if(results.length !== totalPanels){
-    alert("まだ未確定のコマがあります");
-    return;
-  }
+if(results.length !== totalPanels || totalPanels === 0){
+  alert("まだ未確定のコマがあります");
+  return;
+}
   
   const target = document.getElementById("final");
 
@@ -711,10 +711,10 @@ renderLayouts();
 
 function shareImage(){
 
-  if(results.length !== totalPanels){
-    alert("まだ未確定のコマがあります");
-    return;
-  }
+if(results.length !== totalPanels || totalPanels === 0){
+  alert("まだ未確定のコマがあります");
+  return;
+}
   
   const target = document.getElementById("final");
 
