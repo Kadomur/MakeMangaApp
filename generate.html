@@ -635,12 +635,8 @@ function renderFinal(){
 
 function saveImage(){
 
-  // ▼追加：未確定チェック
-const layouts = JSON.parse(localStorage.getItem("layouts")) || [];
-
-const incomplete = layouts.find(l => !l.rows);
-
-if(incomplete){
+// ▼修正：選択中レイアウトだけチェック
+if(!selectedLayout || !selectedLayout.rows){
   alert("③まで確定してください");
   return;
 }
@@ -716,12 +712,8 @@ renderLayouts();
 
 function shareImage(){
 
-  // ▼追加：未確定チェック
-const layouts = JSON.parse(localStorage.getItem("layouts")) || [];
-
-const incomplete = layouts.find(l => !l.rows);
-
-if(incomplete){
+// ▼修正：選択中レイアウトだけチェック
+if(!selectedLayout || !selectedLayout.rows){
   alert("③まで確定してください");
   return;
 }
