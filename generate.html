@@ -636,14 +636,14 @@ function renderFinal(){
 function saveImage(){
 
   // ▼追加：未確定チェック
-  const layouts = JSON.parse(localStorage.getItem("layouts")) || [];
+const layouts = JSON.parse(localStorage.getItem("layouts")) || [];
 
-  const incomplete = layouts.find(l => !l.compositions || l.compositions.length === 0);
+const incomplete = layouts.find(l => !l.rows);
 
-  if(incomplete){
-    alert("③まですべて確定してください");
-    return;
-  }
+if(incomplete){
+  alert("③まで確定してください");
+  return;
+}
 
   const target = document.getElementById("final");
 
@@ -717,14 +717,14 @@ renderLayouts();
 function shareImage(){
 
   // ▼追加：未確定チェック
-  const layouts = JSON.parse(localStorage.getItem("layouts")) || [];
+const layouts = JSON.parse(localStorage.getItem("layouts")) || [];
 
-  const incomplete = layouts.find(l => !l.compositions || l.compositions.length === 0);
+const incomplete = layouts.find(l => !l.rows);
 
-  if(incomplete){
-    alert("③まですべて確定してください");
-    return;
-  }
+if(incomplete){
+  alert("③まで確定してください");
+  return;
+}
 
   const target = document.getElementById("final");
 
